@@ -8,6 +8,9 @@ namespace ABParse.Tests.Parsers
 {
     public class MyParser : ABParser
     {
+        public List<string> Leads = new List<string>();
+        public List<string> Trails = new List<string>();
+        
         public override ABParserToken[] Rules
         {
             get
@@ -24,8 +27,11 @@ namespace ABParse.Tests.Parsers
         {
             base.OnTokenProcessed(e);
 
-            Console.WriteLine(e.Token.Name + ": " + e.Leading);
-            Console.WriteLine(e.Token.Name + ": " + e.Trailing);
+            Leads.Add(e.Leading);
+            Trails.Add(e.Trailing);
+
+            ////Console.WriteLine(e.Token.Name + ": " + e.Leading);
+            ////Console.WriteLine(e.Token.Name + ": " + e.Trailing);
         }
     }
 }
