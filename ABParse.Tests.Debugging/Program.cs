@@ -15,7 +15,16 @@ namespace ABParse.Tests.Debugging
             MyParser parser = new MyParser();
 
             // Act
-            parser.Start("Hello world!.Anotherone,plz..evenmore,,justwork.WOW,ITWORKS,,..FINALPART");
+            parser.Start("Hello world!.Anotherone,Ending");
+            //parser.Start("Hello world!.Anotherone,plz..evenmore,,justwork.WOW,ITWORKS,,..FINALPART");
+
+            // Assert
+            parser.Leads.ForEach((itm) => Console.WriteLine(itm));
+
+            //Assert.AreEqual(new List<string>() { "Hello world!", "Anotherone" }, parser.Leads);
+            Console.ReadLine();
+
+            PerformanceTests.RunAll();
 
             Console.ReadLine();
         }

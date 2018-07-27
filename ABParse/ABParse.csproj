@@ -41,7 +41,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ABParser.cs" />
-    <Compile Include="PunctuationProcessedEventArgs.cs" />
+    <Compile Include="TokenProcessedEventArgs.cs" />
     <Compile Include="ABParserToken.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

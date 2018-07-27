@@ -163,6 +163,9 @@ namespace ABParse
                     break;
             }
 
+            // Make sure update anything that needs to be updated - based on the last character.
+            ProcessBuiltUpTokens();
+
             // Make sure we definitely complete the queued up token.
             PerformToken(null);
         }
@@ -264,6 +267,9 @@ namespace ABParse
                     // Set the _tokenEnd variable.
                     _tokenEnd = _currentLocation;
 
+                    // Set the _builtUp to the correct value. 
+                    _builtUp = newBuildupTokens;
+
                     // We'll leave it to deal with this on the next character.
                     return;
                 }
@@ -281,6 +287,12 @@ namespace ABParse
             // The possible tokens this could be.
             _builtUp = newBuildupTokens;
 
+            // Check if the result of the for loop above gave back any tokens.
+            ProcessBuiltUpTokens();
+        }
+
+        private void ProcessBuiltUpTokens()
+        {
             // If we didn't find one, clean out the build-up.
             if (_builtUp.Count == 0)
             {
@@ -289,10 +301,11 @@ namespace ABParse
                     PerformToken(_exactToken);
 
                 // Add the character to the current build up (it could actually be leading or trailing).
-                if (_usePrimary)
-                    _primaryBuildUp.Append(Text[_currentLocation]);
-                else
-                    _secondaryBuildUp.Append(Text[_currentLocation]);
+                if (_currentLocation < Text.Length)
+                    if (_usePrimary)
+                        _primaryBuildUp.Append(Text[_currentLocation]);
+                    else
+                        _secondaryBuildUp.Append(Text[_currentLocation]);
 
                 // Clear all the built up text - we're done with this one..
                 _textBuildup.Clear();
@@ -302,7 +315,7 @@ namespace ABParse
             }
 
             // Finally, if we still haven't found the exact token, just add to the current build up for leading.
-            else if (_builtUp.Count > 1)
+            else if (_builtUp.Count > 1 && _currentLocation < Text.Length)
                 if (_usePrimary)
                     _primaryBuildUp.Append(Text[_currentLocation]);
                 else
