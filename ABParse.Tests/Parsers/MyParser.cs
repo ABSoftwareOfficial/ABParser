@@ -11,11 +11,11 @@ namespace ABParse.Tests.Parsers
         public List<string> Leads = new List<string>();
         public List<string> Trails = new List<string>();
         
-        public override ABParserToken[] Rules
+        public override List<ABParserToken> Rules
         {
             get
             {
-                return new ABParserToken[]
+                return new List<ABParserToken>()
                 {
                     new ABParserToken("DOT", "."),
                     new ABParserToken("COMMA", ","),
@@ -23,15 +23,27 @@ namespace ABParse.Tests.Parsers
             }
         }
 
+        //public override bool NotifyCharacterProcessed { get { return true; } }
+
+        protected override void OnCharacterProcessed(char ch)
+        {
+            base.OnCharacterProcessed(ch);
+
+            //Console.WriteLine(ch);
+        }
+
         protected override void OnTokenProcessed(TokenProcessedEventArgs e)
         {
             base.OnTokenProcessed(e);
 
-            Leads.Add(e.Leading);
-            Trails.Add(e.Trailing);
+            //Console.WriteLine(e.StartLocation);
+            //Console.WriteLine(e.EndLocation);
 
-            ////Console.WriteLine(e.Token.Name + ": " + e.Leading);
-            ////Console.WriteLine(e.Token.Name + ": " + e.Trailing);
+            //Leads.Add(e.Leading);
+            //Trails.Add(e.Trailing);
+
+            //Console.WriteLine(e.Token.Name + ": " + e.Leading);
+            //Console.WriteLine(e.Token.Name + ": " + e.Trailing);
         }
     }
 }

@@ -11,15 +11,17 @@ namespace ABParse.Tests.Debugging
     {
         public static void Main(string[] args)
         {
+            Example();
+            Console.ReadLine();
             // Arrange
             MyParser parser = new MyParser();
 
             // Act
-            parser.Start("Hello world!.Anotherone,Ending");
+            parser.Start("Hello world!.Anotherone,");
             //parser.Start("Hello world!.Anotherone,plz..evenmore,,justwork.WOW,ITWORKS,,..FINALPART");
 
             // Assert
-            parser.Leads.ForEach((itm) => Console.WriteLine(itm));
+            parser.Trails.ForEach((itm) => Console.WriteLine(itm));
 
             //Assert.AreEqual(new List<string>() { "Hello world!", "Anotherone" }, parser.Leads);
             Console.ReadLine();
@@ -27,6 +29,17 @@ namespace ABParse.Tests.Debugging
             PerformanceTests.RunAll();
 
             Console.ReadLine();
+        }
+
+        public static void Example()
+        {
+            //var parser = new DemoParser();
+            //parser.Start("hello!world?another");
+
+            var parser = new JsonParser();
+            parser.Start("{\"hello\":[32, 478],\"cool\":{\"another\":[\"Come on!\", \"You can do it :p\"]}}");
+
+            Console.WriteLine("Done!");
         }
     }
 }

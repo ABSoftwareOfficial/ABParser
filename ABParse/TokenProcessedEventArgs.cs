@@ -11,8 +11,11 @@ namespace ABParse
     /// </summary>
     public class TokenProcessedEventArgs
     {
-        private StringBuilder _leading;
-        private StringBuilder _trailing;
+        private char[] _leading;
+        private char[] _trailing;
+
+        private string _cacheLeading = "";
+        private string _cacheTrailing = "";
 
         /// <summary>
         /// The actual token.
@@ -30,30 +33,44 @@ namespace ABParse
         public int EndLocation { get; internal set; }
 
         /// <summary>
-        /// The text leading up to this token.
+        /// The text leading up to this token - from the last token.
         /// </summary>
         public string Leading
         {
-            get { return _leading.ToString(); }
+            get
+            {
+                if (_cacheLeading == "")
+                    for (int i = 0; i < _leading.Length; i++)
+                        _cacheLeading += _leading[i];
+
+                return _cacheLeading;
+            }
         }
 
         /// <summary>
-        /// The text after this token.
+        /// The text after this token - up to the next token.
         /// </summary>
         public string Trailing
         {
-            get { return _trailing.ToString(); }
+            get
+            {
+                if (_cacheTrailing == "")
+                    for (int i = 0; i < _trailing.Length; i++)
+                        _cacheTrailing += _trailing[i];
+
+                return _cacheTrailing;
+            }
         }
 
-        public TokenProcessedEventArgs(ABParserToken token, int start, int end, StringBuilder leading, StringBuilder trailing)
+        public TokenProcessedEventArgs(ABParserToken token, int start, int end, List<char> leading, List<char> trailing)
         {
             // Set the start and end locations.
             StartLocation = start;
             EndLocation = end;
 
             // Set the leading and trailing text.
-            _leading = leading;
-            _trailing = trailing;
+            _leading = leading.ToArray();
+            _trailing = trailing.ToArray();
 
             // Set the token.
             Token = token;

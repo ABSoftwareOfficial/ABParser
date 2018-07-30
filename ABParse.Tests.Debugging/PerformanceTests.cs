@@ -15,8 +15,8 @@ namespace ABParse.Tests.Debugging
         public static long SimpleTestSpeed()
         {
             var timer = Stopwatch.StartNew();
-            var parser = new MyParser();
-            parser.Start("Hello world!.Anotherone,Ending");
+            var parser = new DemoParser();
+            parser.Start("Hello world!.Anotherone,");
             timer.Stop();
 
             return timer.ElapsedTicks;

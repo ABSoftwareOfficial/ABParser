@@ -19,7 +19,7 @@ namespace ABParse
         /// <summary>
         /// The actual text that should be recognized.
         /// </summary>
-        public StringBuilder Token { get; set; } = new StringBuilder();
+        public char[] Token { get; set; }
 
         // All the constructors for creating this parser:
 
@@ -31,7 +31,7 @@ namespace ABParse
         public ABParserToken(string name, string token)
         {
             Name = name;
-            Token = new StringBuilder(token);
+            Token = ABParser.ToCharArray(token);
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace ABParse
         public ABParserToken(string name, StringBuilder token)
         {
             Name = name;
-            Token = token;
+            token.CopyTo(0, Token, 0, token.Length);
         }
 
         /// <summary>
@@ -53,11 +53,7 @@ namespace ABParse
         public ABParserToken(string name, params char[] token)
         {
             Name = name;
-
-            // Convert the array of characters to a string
-            for (int i = 0; i < token.Length; i++)
-                Token.Append(token[i]);
-            
+            Token = token;
         }
     }
 }

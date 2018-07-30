@@ -38,7 +38,7 @@ namespace ABParse.Tests
 
             parser.Start("Hello world!.Anotherone,Ending");
             timer.Stop();
-            Console.WriteLine(timer.ElapsedMilliseconds);
+            Console.WriteLine(timer.Elapsed.ToString());
 
             // Assert
             CollectionAssert.AreEqual(new string[] { "Hello world!", "Anotherone" }, parser.Leads.ToArray());
@@ -56,7 +56,7 @@ namespace ABParse.Tests
             parser.Start("Hello world!.Anotherone,Ending");
 
             timer.Stop();
-            Console.WriteLine(timer.ElapsedMilliseconds);
+            Console.WriteLine(timer.Elapsed.ToString());
 
             // Assert
             CollectionAssert.AreEqual(new string[] { "Anotherone", "Ending" }, parser.Trails.ToArray());
@@ -74,7 +74,7 @@ namespace ABParse.Tests
             parser.Start("Hello world!.Anotherone,");
 
             timer.Stop();
-            Console.WriteLine(timer.ElapsedMilliseconds);
+            Console.WriteLine(timer.Elapsed.ToString());
 
             // Assert
             CollectionAssert.AreEqual(new string[] { "Hello world!", "Anotherone" }, parser.Leads.ToArray());
@@ -92,7 +92,7 @@ namespace ABParse.Tests
             parser.Start("Hello world!.Anotherone,");
 
             timer.Stop();
-            Console.WriteLine(timer.ElapsedMilliseconds);
+            Console.WriteLine(timer.Elapsed.ToString());
 
             // Assert
             CollectionAssert.AreEqual(new string[] { "Anotherone", "" }, parser.Trails.ToArray());
