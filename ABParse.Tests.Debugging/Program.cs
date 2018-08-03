@@ -11,8 +11,8 @@ namespace ABParse.Tests.Debugging
     {
         public static void Main(string[] args)
         {
-            //Example();
-            //Console.ReadLine();
+            Example();
+            Console.ReadLine();
             var totalSpeed = 0L;
 
             for (int i = 0; i < PerformanceTests.EXECUTION_TIMES; i++)
@@ -32,7 +32,7 @@ namespace ABParse.Tests.Debugging
             ////Assert.AreEqual(new List<string>() { "Hello world!", "Anotherone" }, parser.Leads);
             //Console.ReadLine();
 
-            //PerformanceTests.RunAll();
+            PerformanceTests.RunAll();
 
             Console.ReadLine();
         }

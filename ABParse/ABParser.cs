@@ -227,6 +227,27 @@ namespace ABParse
             return true;
         }
 
+        internal unsafe static bool StartsWith(char[] arr, List<char> contents)
+        {
+            // Get two (fixed) pointers for both char arrays.
+            fixed (char* fixedPointer = arr)
+            {
+                var pointer = fixedPointer;
+
+                // Go through each character in the start array - if any character doesn't line up, return false.
+                for (int i = 0; i < arr.Length; i++)
+                    if (contents.Count > i)
+                    {
+                        if (*(pointer++) != contents[i])
+                            return false;
+                    }
+                    else break;
+            }
+
+            // If it made it here - return true.
+            return true;
+        }
+
         internal unsafe void ManageStartChars()
         {
             var chArray = new char[Tokens.Count];
@@ -544,14 +565,13 @@ namespace ABParse
                 // If the above test found something, the rest can be executed.
                 if (_builtUp.Count > 0)
                 {
-
                     // Put the _textBuildup into an array, which is used to compare with the Text array.
-                    var asArray = _textBuildup.ToArray();
+                    //var asArray = _textBuildup.ToArray();
 
                     // Check which token the current build-up text fits under, keeping track of how many are left.
                     for (int i = 0; i < _builtUp.Count; i++)
 
-                        if (_builtUp[i].Token.SequenceEqual(asArray))
+                        if (_builtUp[i].Token.SequenceEqual(_textBuildup))
                         {
                             // Say that we've found a token with the exact same text as the build-up so far.
                             _foundExactToken = true;
@@ -575,7 +595,7 @@ namespace ABParse
                         }
 
                         // If the current builtUp one we are testing does actually start with our current built-up string.
-                        else if (StartsWith(_builtUp[i].Token, asArray))
+                        else if (StartsWith(_builtUp[i].Token, _textBuildup))
                         {
                             newBuildupTokens.Add(_builtUp[i]);
 

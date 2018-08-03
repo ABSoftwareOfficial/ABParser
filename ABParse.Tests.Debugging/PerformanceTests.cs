@@ -119,7 +119,7 @@ namespace ABParse.Tests.Debugging
             var timer = Stopwatch.StartNew();
             var parser = new JsonParser();
 
-            parser.Start("{\"hello\":\"world!\",\"another\":[37, 431]}");
+            parser.Start("{\"hello\":[32, 478],\"cool\":{\"another\":[\"Come on!\", \"You can do it :p\"]}}");
             timer.Stop();
 
             return timer.ElapsedTicks;
