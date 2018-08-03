@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,16 +9,14 @@ namespace ABParse.Tests.Debugging
 {
     public class DemoParser : ABParser
     {
-        public override List<ABParserToken> Rules
+
+        public DemoParser()
         {
-            get
+            Tokens = new ObservableCollection<ABParserToken>()
             {
-                return new List<ABParserToken>()
-                {
-                    new ABParserToken("EXCLAMATION", '!'),
-                    new ABParserToken("QUESTION", '?')
-                };
-            }
+                new ABParserToken("EXCLAMATION", '!'),
+                new ABParserToken("QUESTION", '?')
+            };
         }
 
         protected override void OnTokenProcessed(TokenProcessedEventArgs e)

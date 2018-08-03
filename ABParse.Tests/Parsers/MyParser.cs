@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,17 +11,14 @@ namespace ABParse.Tests.Parsers
     {
         public List<string> Leads = new List<string>();
         public List<string> Trails = new List<string>();
-        
-        public override List<ABParserToken> Rules
+
+        public MyParser()
         {
-            get
+            Tokens = new ObservableCollection<ABParserToken>()
             {
-                return new List<ABParserToken>()
-                {
-                    new ABParserToken("DOT", "."),
-                    new ABParserToken("COMMA", ","),
-                };
-            }
+                new ABParserToken("DOT", "."),
+                new ABParserToken("COMMA", ","),
+            };
         }
 
         //public override bool NotifyCharacterProcessed { get { return true; } }

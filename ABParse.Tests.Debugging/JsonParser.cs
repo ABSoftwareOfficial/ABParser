@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -70,20 +71,31 @@ namespace ABParse.Tests.Debugging
         public bool OnValue;
         public bool InString;
 
-        public override List<ABParserToken> Rules
+        public JsonParser()
         {
-            get
+            Tokens = new ObservableCollection<ABParserToken>()
             {
-                return new List<ABParserToken>()
-                {
-                    new ABParserToken(nameof(JsonParserTokens.ObjectStart), '{'),
-                    new ABParserToken(nameof(JsonParserTokens.ObjectEnd), '}'),
-                    new ABParserToken(nameof(JsonParserTokens.ArrayStart), '['),
-                    new ABParserToken(nameof(JsonParserTokens.ArrayEnd), ']'),
-                    new ABParserToken(nameof(JsonParserTokens.String), '"'),
-                    new ABParserToken(nameof(JsonParserTokens.PairSeperator), ':'),
-                    new ABParserToken(nameof(JsonParserTokens.ItemSeperator), ',')
-                };
+                new ABParserToken(nameof(JsonParserTokens.ObjectStart), '{'),
+                new ABParserToken(nameof(JsonParserTokens.ObjectEnd), '}'),
+                new ABParserToken(nameof(JsonParserTokens.ArrayStart), '['),
+                new ABParserToken(nameof(JsonParserTokens.ArrayEnd), ']'),
+                new ABParserToken(nameof(JsonParserTokens.String), '"'),
+                new ABParserToken(nameof(JsonParserTokens.PairSeperator), ':'),
+                new ABParserToken(nameof(JsonParserTokens.ItemSeperator), ',')
+            };
+        }
+
+        protected override void BeforeTokenProcessed(ABParserToken token)
+        {
+            base.BeforeTokenProcessed(token);
+
+            if (token.Name == nameof(JsonParserTokens.String) && !InString)
+            {
+                // Make sure that the next string token won't have this rule on its trailing.
+                LimitAffectsNextTrailing = false;
+
+                // Set the token limit.
+                TokenLimit = new ObservableCollection<char[]>() { token.Token };
             }
         }
 
@@ -91,10 +103,9 @@ namespace ABParse.Tests.Debugging
         {
             base.OnTokenProcessed(e);
 
-            if (InString) {
-                if (e.Token.Name == nameof(JsonParserTokens.String))
-                    InString = false;
-            } else {
+            if (InString)
+                InString = false;
+            else {
 
                 switch (e.Token.Name)
                 {

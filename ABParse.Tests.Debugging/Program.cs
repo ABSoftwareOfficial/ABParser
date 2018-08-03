@@ -11,22 +11,28 @@ namespace ABParse.Tests.Debugging
     {
         public static void Main(string[] args)
         {
-            Example();
-            Console.ReadLine();
-            // Arrange
-            MyParser parser = new MyParser();
+            //Example();
+            //Console.ReadLine();
+            var totalSpeed = 0L;
 
-            // Act
-            parser.Start("Hello world!.Anotherone,");
-            //parser.Start("Hello world!.Anotherone,plz..evenmore,,justwork.WOW,ITWORKS,,..FINALPART");
+            for (int i = 0; i < PerformanceTests.EXECUTION_TIMES; i++)
+                totalSpeed += PerformanceTests.ToListOnTokens();
 
-            // Assert
-            parser.Trails.ForEach((itm) => Console.WriteLine(itm));
+            Console.WriteLine(totalSpeed / PerformanceTests.EXECUTION_TIMES);
+            //// Arrange
+            //MyParser parser = new MyParser();
 
-            //Assert.AreEqual(new List<string>() { "Hello world!", "Anotherone" }, parser.Leads);
-            Console.ReadLine();
+            //// Act
+            //parser.Start("Hello world!.Anotherone,");
+            ////parser.Start("Hello world!.Anotherone,plz..evenmore,,justwork.WOW,ITWORKS,,..FINALPART");
 
-            PerformanceTests.RunAll();
+            //// Assert
+            //parser.Trails.ForEach((itm) => Console.WriteLine(itm));
+
+            ////Assert.AreEqual(new List<string>() { "Hello world!", "Anotherone" }, parser.Leads);
+            //Console.ReadLine();
+
+            //PerformanceTests.RunAll();
 
             Console.ReadLine();
         }

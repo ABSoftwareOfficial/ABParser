@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -17,6 +20,11 @@ namespace ABParse
         /// <para>Whereas, the public one just says where it is based on what part the user will be on - however, behind the scenes... it may have skipped ahead a bit to get more data.</para>
         /// </summary>
         private int _currentLocation;
+
+        /// <summary>
+        /// All the tokens.
+        /// </summary>
+        private ObservableCollection<ABParserToken> _tokens = new ObservableCollection<ABParserToken>();
 
         /// <summary>
         /// The text that has been built up so far.
@@ -87,6 +95,22 @@ namespace ABParse
         /// Whether the next character is escaped or not.
         /// </summary>
         private bool _charIsEscaped = false;
+
+        /// <summary>
+        /// The first characters of each token - for performance.
+        /// </summary>
+        private char[] _firstTokensChars = new char[0];
+
+        /// <summary>
+        /// All of the tokens that fit within the token limit...
+        /// </summary>
+        private ABParserToken[] _validTokens;
+
+        /// <summary>
+        /// Only tokens starting with these characters are allowed.
+        /// </summary>
+        private ObservableCollection<char[]> _tokenLimit = new ObservableCollection<char[]>();
+
         #endregion
 
         #region Public Variables
@@ -102,7 +126,7 @@ namespace ABParse
         public virtual bool EscapeTokens { get { return true; } }
 
         /// <summary>
-        /// The character the parser should use to escape tokens - if <see cref="EscapeTokens"/> is true.
+        /// The character the parser should use to escape tokens - if <see cref="EscapeTokens"/> is true. NOTE: YOUR TOKENS CAN'T CONTAIN THIS CHARACTER.
         /// </summary>
         public virtual char EscapeCharacter { get { return '\\'; } }
 
@@ -124,7 +148,35 @@ namespace ABParse
         /// <summary>
         /// All the rules.
         /// </summary>
-        public virtual List<ABParserToken> Rules { get; set; }
+        public ObservableCollection<ABParserToken> Tokens
+        {
+            get { return _tokens; }
+            set
+            {
+                _tokens = value;
+                ManageStartChars();
+                Tokens.CollectionChanged += Tokens_CollectionChanged;
+            }
+        }
+
+        /// <summary>
+        /// Only tokens starting with these characters are allowed. NOTE: If this array is empty, all tokens will be allowed - use <see cref="ObservableCollection{T}.ClearItems()"/> to clear it.
+        /// </summary>
+        public virtual ObservableCollection<char[]> TokenLimit
+        {
+            get { return _tokenLimit; }
+            set
+            {
+                _tokenLimit = value;
+                ManageStartChars();
+                TokenLimit.CollectionChanged += Tokens_CollectionChanged;
+            }
+        }
+
+        /// <summary>
+        /// Whether the current token limit affects the tokens AFTER the NEXT token (the trailing of the next token) - can be quite useful for strings when only want to limit the contents.
+        /// </summary>
+        public virtual bool LimitAffectsNextTrailing { get; set; } = true;
 
         /// <summary>
         /// The main string.
@@ -174,9 +226,80 @@ namespace ABParse
             // If it made it here - return true.
             return true;
         }
+
+        internal unsafe void ManageStartChars()
+        {
+            var chArray = new char[Tokens.Count];
+            var tkArray = new ABParserToken[Tokens.Count];
+
+            fixed (char* resultPointer = chArray)
+            {
+                var pointer = resultPointer;
+
+                // If there are limits, get all the first characters - EXCLUDING the non-limited ones.
+                if (_tokenLimit.Count > 0)
+                {
+
+                    // Go through every rule.
+                    for (int i = 0; i < Tokens.Count; i++)
+                        if (Tokens[i].Token.Length > 0)
+
+                            // Go through every token limit - only allowing the ones that fit under them.
+                            for (int j = 0; j < _tokenLimit.Count; j++)
+                                if (StartsWith(Tokens[i].Token, _tokenLimit[j]))
+                                {
+                                    // Add it.
+                                    tkArray[pointer - resultPointer] = Tokens[i];
+                                    *(pointer++) = Tokens[i].Token[0];
+
+                                    // We're done with this item.
+                                    break;
+                                }
+                }
+
+                // Otherwise, if there's no limit... Just make an array based on all the rules.
+                else
+                    for (int i = 0; i < Tokens.Count; i++)
+                        if (Tokens[i].Token.Length > 0)
+                        {
+
+                            // Add it.
+                            tkArray[pointer - resultPointer] = Tokens[i];
+                            *(pointer++) = Tokens[i].Token[0];
+                        }
+
+                // The actual length we want in the final destination.
+                var count = pointer - resultPointer;
+
+                // Now, create the new character array - but, only with the actual length we want.
+                _firstTokensChars = new char[count];
+                _validTokens = new ABParserToken[count];
+
+                fixed (char* destinationPointer = _firstTokensChars)
+                {
+                    var fPointer = destinationPointer;
+                    // Reset the pointer back to the beginning.
+                    pointer = resultPointer;
+
+                    // Copy them over to the _firstTokensChars and _validTokens array, which is the final destination.
+                    for (int i = 0; i < count; i++)
+                    {
+                        *(fPointer++) = *(pointer++);
+                        _validTokens[i] = tkArray[i];
+                    }
+                }
+            }
+
+        }
         #endregion
 
         #region Managed Code
+        public ABParser()
+        {
+            Tokens.CollectionChanged += Tokens_CollectionChanged;
+            TokenLimit.CollectionChanged += Tokens_CollectionChanged;
+        }
+
         internal static void TrimEnd(ref List<char> arr, int amount)
         {
             arr.RemoveRange(arr.Count - amount, amount);
@@ -215,10 +338,25 @@ namespace ABParse
         }
 
         /// <summary>
+        /// Stops the execution of the parser.
+        /// </summary>
+        public void Stop()
+        {
+            IsProcessing = false;
+        }
+
+        private void Tokens_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            sender = e.NewItems;
+            ManageStartChars();
+        }
+
+        /// <summary>
         /// Actually does the start...
         /// </summary>
         private void PerformStart()
         {
+            //var tmr = Stopwatch.StartNew();
             // Call the "OnStart" method
             OnStart();
 
@@ -235,11 +373,11 @@ namespace ABParse
             // Get the start of every token and place it into a variable for easy access.
             //_cacheStartChars = new List<char>();
 
-            //for (int i = 0; i < Rules.Length; i++)
-            //    _cacheStartChars.Add(Rules[i].Token[0]);
+            //for (int i = 0; i < Tokens.Length; i++)
+            //    _cacheStartChars.Add(Tokens[i].Token[0]);
 
             // Set the built up tokens back to default - ALL of the tokens.
-            _builtUp = Rules.ToList();
+            _builtUp = Tokens.ToList();
 
             // Loop through every character - this is the very heart of this parser.
             for (_currentLocation = 0; _currentLocation < Text.Length; _currentLocation++)
@@ -260,6 +398,7 @@ namespace ABParse
 
             // Call the "OnEnd" method
             OnEnd();
+            //var ticks = tmr.ElapsedTicks;
         }
 
         /// <summary>
@@ -286,8 +425,18 @@ namespace ABParse
                 // Make sure the "CurrentLocation" variable is actually the location of this token.
                 CurrentLocation = _queueTokenEnd;
 
+                // Clear out the token limit if the trailing of the next token shouldn't be limited.
+                if (!LimitAffectsNextTrailing)
+                {
+                    TokenLimit.Clear();
+                    ManageStartChars();
+
+                    // Reset the variable.
+                    LimitAffectsNextTrailing = true;
+                }
+
                 // Call the overrideable method.
-                OnTokenProcessed(new TokenProcessedEventArgs(_queue, _queueTokenStart, _queueTokenEnd,
+                OnTokenProcessed(new TokenProcessedEventArgs(_queue, token, _queueTokenStart, _queueTokenEnd,
                     (_usePrimary) ? _primaryBuildUp : _secondaryBuildUp, (_usePrimary) ? _secondaryBuildUp : _primaryBuildUp));
 
                 // Toggle _usePrimary if it wasn't done when this token was actually found.
@@ -321,6 +470,9 @@ namespace ABParse
                 _queueTokenStart = _tokenStart;
                 _queueTokenEnd = _tokenEnd;
 
+                // Call the overrideable event.
+                BeforeTokenProcessed(token);
+
                 // Don't do anything else, except set the queue if this is the first one.
                 if (_queue == null)
                 {
@@ -340,35 +492,17 @@ namespace ABParse
         }
 
         /// <summary>
-        /// When a character is processed. NOTE: <see cref="NotifyCharacterProcessed"/> MUST BE TRUE.
-        /// </summary>
-        /// <param name="ch">The character being processed.</param>
-        protected virtual void OnCharacterProcessed(char ch)
-        {
-            // Increase the public position
-            CurrentLocation++;
-
-            // Trigger the event.
-            // TODO: Event Support.
-        }
-
-        protected virtual void OnTokenProcessed(TokenProcessedEventArgs e)
-        {
-            // This method is literally designed to be overrided... So, we only need to trigger the event.
-
-            // Trigger the event.
-            // TODO: More event support.
-        }
-
-        /// <summary>
         /// The heart of the parser - processes a character.
         /// </summary>
         /// <returns>Whether this method should be called twice on the next character</returns>
-        private bool ProcessChar(bool processBuiltUpTokens)
+        internal bool ProcessChar(bool processBuiltUpTokens)
         {
             // If we should ignore this character for whatever reason... don't bother with checking the tokens, and just add it to the build up.
             if ((EscapeTokens && _charIsEscaped) || (IgnoreWhitespace && char.IsWhiteSpace(Text[_currentLocation])))
             {
+                // If this character was escaped... then it isn't anymore!
+                _charIsEscaped = false;
+
                 // If there is a queued up item - we'll want to make sure we look at that.
                 if (_foundExactToken)
                     ProcessBuiltUpTokens(false);
@@ -380,53 +514,79 @@ namespace ABParse
                     _secondaryBuildUp.Add(Text[_currentLocation]);
             } else {
 
+                // If this character is the escape character...
+                if (Text[_currentLocation] == EscapeCharacter)
+                {
+                    _charIsEscaped = true;
+                    return false;
+                }
+
                 // We add all the tokens that still fit, then place that into the main "_builtUp" array.
                 var newBuildupTokens = new List<ABParserToken>();
 
                 // Add the current character to the built up item.
                 _textBuildup.Add(Text[_currentLocation]);
 
-                // Put the _textBuildup into an array, which is used to compare with the Text array.
-                var asArray = _textBuildup.ToArray();
+                // Check if these characters can even fit under any of the tokens... This is a performance thing.
+                if (_textBuildup.Count == 1 && _builtUp.Count > 0)
+                {
+                    // Clear out the old _builtUp variables.
+                    _builtUp.Clear();
 
-                // Check which token the current build-up text fits under, keeping track of how many are left.
-                for (int i = 0; i < _builtUp.Count; i++)
+                    // Go through all the first characters, and add rules that fit it...
+                    for (int i = 0; i < _firstTokensChars.Length; i++)
 
-                    if (_builtUp[i].Token.SequenceEqual(asArray))
-                    {
-                        // Say that we've found a token with the exact same text as the build-up so far.
-                        _foundExactToken = true;
-                        _exactToken = _builtUp[i];
+                        // Check if this token fits, if so, add it to the built up tokens...
+                        if (_textBuildup[0] == _firstTokensChars[i])
+                            _builtUp.Add(_validTokens[i]);
+                }
 
-                        // Set this as the start of the token - if it hasn't already been set.
-                        if (_tokenStart == 0)
-                            _tokenStart = _currentLocation;
+                // If the above test found something, the rest can be executed.
+                if (_builtUp.Count > 0)
+                {
 
-                        // Set this as the end of this token.
-                        _tokenEnd = _currentLocation;
+                    // Put the _textBuildup into an array, which is used to compare with the Text array.
+                    var asArray = _textBuildup.ToArray();
 
-                        // Clear out the _textBuildup.
-                        _textBuildup.Clear();
+                    // Check which token the current build-up text fits under, keeping track of how many are left.
+                    for (int i = 0; i < _builtUp.Count; i++)
 
-                        // Set the _builtUp to the correct value. 
-                        _builtUp = newBuildupTokens;
+                        if (_builtUp[i].Token.SequenceEqual(asArray))
+                        {
+                            // Say that we've found a token with the exact same text as the build-up so far.
+                            _foundExactToken = true;
+                            _exactToken = _builtUp[i];
 
-                        // We'll leave it to deal with this on the next character.
-                        return true;
-                    }
+                            // Set this as the start of the token - if it hasn't already been set.
+                            if (_tokenStart == 0)
+                                _tokenStart = _currentLocation;
 
-                    // If the current builtUp one we are testing does actually start with our current built-up string.
-                    else if (StartsWith(_builtUp[i].Token, asArray))
-                    {
-                        newBuildupTokens.Add(_builtUp[i]);
+                            // Set this as the end of this token.
+                            _tokenEnd = _currentLocation;
 
-                        // Just in case this turns out to be the one we are looking for - store this as the start location, if it hasn't already been set.
-                        if (_tokenStart == 0)
-                            _tokenStart = _currentLocation;
-                    }
+                            // Clear out the _textBuildup.
+                            //_textBuildup.Clear();
 
-                // The possible tokens this could be.
-                _builtUp = newBuildupTokens;
+                            // Set the _builtUp to the correct value. 
+                            _builtUp = newBuildupTokens;
+
+                            // We'll leave it to deal with this on the next character.
+                            return true;
+                        }
+
+                        // If the current builtUp one we are testing does actually start with our current built-up string.
+                        else if (StartsWith(_builtUp[i].Token, asArray))
+                        {
+                            newBuildupTokens.Add(_builtUp[i]);
+
+                            // Just in case this turns out to be the one we are looking for - store this as the start location, if it hasn't already been set.
+                            if (_tokenStart == 0)
+                                _tokenStart = _currentLocation;
+                        }
+
+                    // The possible tokens this could be.
+                    _builtUp = newBuildupTokens;
+                }
 
                 // Check if the result of the for loop above gave back any tokens.
                 if (processBuiltUpTokens)
@@ -445,7 +605,7 @@ namespace ABParse
                 _textBuildup.Clear();
 
                 // Reset the _builtUp array.
-                _builtUp = Rules;
+                _builtUp = Tokens.ToList();
 
                 // Check if we actually found a perfect match along the way.
                 if (_foundExactToken)
@@ -461,6 +621,12 @@ namespace ABParse
 
                     // If "retry" is false - which only happens at the very end of the parse... there's no point in building up any characters (waste of performance)
                     else return;
+
+                    // Clear all the built up text AGAIN - because we just ran ProcessChar...
+                    _textBuildup.Clear();
+
+                    // Reset the _builtUp array, again - since we called the ProcessChar method.
+                    _builtUp = Tokens.ToList();
 
                     // If we HAVE found the exact token... Don't bother with the OnCharacterProcessed function - because this character will get recounted anyway.
                     if (_foundExactToken)
@@ -491,8 +657,46 @@ namespace ABParse
 
         #region Overrideable Methods
 
+        /// <summary>
+        /// When the parser starts.
+        /// </summary>
         protected virtual void OnStart() { }
+
+        /// <summary>
+        /// When the parser finishes/ends.
+        /// </summary>
         protected virtual void OnEnd() { }
+
+        /// <summary>
+        /// Before a token is COMPLETELY processed (before the trailing is made)
+        /// </summary>
+        /// <param name="token"></param>
+        protected virtual void BeforeTokenProcessed(ABParserToken token) { }
+
+        /// <summary>
+        /// When a character is processed. NOTE: <see cref="NotifyCharacterProcessed"/> MUST BE TRUE.
+        /// </summary>
+        /// <param name="ch">The character being processed.</param>
+        protected virtual void OnCharacterProcessed(char ch)
+        {
+            // Increase the public position
+            CurrentLocation++;
+
+            // Trigger the event.
+            // TODO: Event Support.
+        }
+
+        /// <summary>
+        /// When a token is processed.
+        /// </summary>
+        /// <param name="e">Info about the token being processed, and where it is relative to the text.</param>
+        protected virtual void OnTokenProcessed(TokenProcessedEventArgs e)
+        {
+            // This method is literally designed to be overrided... So, we only need to trigger the event.
+
+            // Trigger the event.
+            // TODO: More event support.
+        }
 
         #endregion
     }

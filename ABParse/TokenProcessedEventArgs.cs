@@ -21,6 +21,11 @@ namespace ABParse
         /// The actual token.
         /// </summary>
         public ABParserToken Token { get; internal set; }
+
+        /// <summary>
+        /// The next token.
+        /// </summary>
+        public ABParserToken NextToken { get; internal set; }
         
         /// <summary>
         /// The location that this token has started at.
@@ -62,7 +67,7 @@ namespace ABParse
             }
         }
 
-        public TokenProcessedEventArgs(ABParserToken token, int start, int end, List<char> leading, List<char> trailing)
+        public TokenProcessedEventArgs(ABParserToken token, ABParserToken nexttoken, int start, int end, List<char> leading, List<char> trailing)
         {
             // Set the start and end locations.
             StartLocation = start;
@@ -71,6 +76,11 @@ namespace ABParse
             // Set the leading and trailing text.
             _leading = leading.ToArray();
             _trailing = trailing.ToArray();
+
+            if (nexttoken == null)
+                NextToken = new ABParserToken("", '\0');
+            else
+                NextToken = nexttoken;
 
             // Set the token.
             Token = token;
