@@ -10,6 +10,10 @@ using System.Threading.Tasks;
 namespace ABParse
 {
     /// <summary>
+    /// Represents the PossibleTokenStart has been set/unset.
+    /// </summary>
+    public delegate void ABParserPossibleTokenStartChanged();
+    /// <summary>
     /// A class designed to help a string be parsed based on a set of "tokens" it should recognize.
     /// </summary>
     public class ABParser
@@ -50,16 +54,6 @@ namespace ABParse
         /// Whether we should toggle _usePrimary.
         /// </summary>
         private bool _togglePrimary;
-
-        /// <summary>
-        /// The start location of the current token.
-        /// </summary>
-        private int _tokenStart;
-
-        /// <summary>
-        /// The end location of the current token.
-        /// </summary>
-        private int _tokenEnd;
 
         /// <summary>
         /// The start location of the queued token.
@@ -111,6 +105,11 @@ namespace ABParse
         /// </summary>
         private ObservableCollection<char[]> _tokenLimit = new ObservableCollection<char[]>();
 
+        /// <summary>
+        /// The possible start of the current token.
+        /// </summary>
+        private int _possibleTokenStart = -1;
+
         #endregion
 
         #region Public Variables
@@ -144,6 +143,32 @@ namespace ABParse
         /// The location the parser has reached.
         /// </summary>
         public int CurrentLocation { get; private set; }
+
+        /// <summary>
+        /// The possible start location of the next token.
+        /// </summary>
+        public int PossibleTokenStart
+        {
+            get { return _possibleTokenStart; }
+            set
+            {
+                _possibleTokenStart = value;
+
+                PossibleTokenStartChanged?.Invoke();
+            }
+        }
+
+        /// <summary>
+        /// The end location of the current token.
+        /// </summary>
+        public int PossibleTokenEnd;
+
+        public ABParserPossibleTokenStartChanged PossibleTokenStartChanged;
+
+        /// <summary>
+        /// Don't let the CurrentLocation variable be changed anywhere except the start/end methods.
+        /// </summary>
+        public bool UseMoveForwardToChangePosition { get; set; }
 
         /// <summary>
         /// All the rules.
@@ -185,7 +210,7 @@ namespace ABParse
         #endregion
 
         #region Unmanaged Code - Text Management
-        internal unsafe static char[] ToCharArray(string str)
+        public unsafe static char[] ToCharArray(string str)
         {
             // Create an array of characters.
             var chArray = new char[str.Length];
@@ -363,12 +388,34 @@ namespace ABParse
         /// </summary>
         public void Stop()
         {
+            // We aren't processing anymore.
             IsProcessing = false;
+
+            // Make sure we definitely complete the queued up token.
+            PerformToken(null);
+
+            // Reset the queue back to null in case the parser gets ran again.
+            _queue = null;
+
+            // Reset the variables which decide which build ups to use back to their default values.
+            _usePrimary = true;
+            _togglePrimary = false;
+
+            // Reset the build ups.
+            _primaryBuildUp.Clear();
+            _secondaryBuildUp.Clear();
+
+            // Reset some other variables.
+            _textBuildup.Clear();
+            _foundExactToken = false;
+
+            // Make sure the token start goes back to its unset value.
+            PossibleTokenStart = -1;
         }
 
         private void Tokens_CollectionChanged(object sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
         {
-            sender = e.NewItems;
+            //sender = e.NewItems;
             ManageStartChars();
         }
 
@@ -378,27 +425,13 @@ namespace ABParse
         private void PerformStart()
         {
             //var tmr = Stopwatch.StartNew();
-            // Call the "OnStart" method
-            OnStart();
 
             // If we are ALREADY in the process of parsing, don't bother.
             if (IsProcessing)
                 return;
 
-            // Make sure we are parsing now
-            IsProcessing = true;
-
-            // Reset the location
-            CurrentLocation = 0;
-
-            // Get the start of every token and place it into a variable for easy access.
-            //_cacheStartChars = new List<char>();
-
-            //for (int i = 0; i < Tokens.Length; i++)
-            //    _cacheStartChars.Add(Tokens[i].Token[0]);
-
-            // Set the built up tokens back to default - ALL of the tokens.
-            _builtUp = Tokens.ToList();
+            // Initialize all the correct variables - and call the OnStart method by initilizing everything.
+            Init();
 
             // Loop through every character - this is the very heart of this parser.
             for (_currentLocation = 0; _currentLocation < Text.Length; _currentLocation++)
@@ -414,12 +447,28 @@ namespace ABParse
             // Make sure update anything that needs to be updated - based on the last character.
             ProcessBuiltUpTokens(false);
 
-            // Make sure we definitely complete the queued up token.
-            PerformToken(null);
+            // Reset everything and stop the parser - the parser has finished.
+            Stop();
 
             // Call the "OnEnd" method
             OnEnd();
             //var ticks = tmr.ElapsedTicks;
+        }
+
+        public void Init()
+        {
+            // Call the "OnStart" method
+            OnStart();
+
+            // Make sure we are parsing now
+            IsProcessing = true;
+
+            // Reset the location to the beginning - to make sure we don't continue from where we were before.
+            CurrentLocation = 0;
+            _currentLocation = 0;
+
+            // Set the built up tokens back to default - ALL of the tokens.
+            _builtUp = Tokens.ToList();
         }
 
         /// <summary>
@@ -430,21 +479,22 @@ namespace ABParse
         {
             // This has to be done before handling any queued up items - 
             // If this token is more than one character long - the leading/trailing will now have a bit of it in it, so we need to remove that.
-            if (token != null)
-                if (token.Token.Length > 1)
-                    if (_usePrimary)
-                        TrimEnd(ref _primaryBuildUp, _primaryBuildUp.Count - 1);
-                    else
-                        TrimEnd(ref _secondaryBuildUp, _secondaryBuildUp.Count - 1);
+            //if (token != null)
+            //    if (token.Token.Length > 1)
+            //        if (_usePrimary)
+            //            TrimEnd(ref _primaryBuildUp, _primaryBuildUp.Count - 1);
+            //        else
+            //            TrimEnd(ref _secondaryBuildUp, _secondaryBuildUp.Count - 1);
             
             // If there is already a token queued up, process it.
             if (_queue != null)
             {
                 // Toggle _usePrimary if needed - because it was toggled to let it build up the trailing.
-                _usePrimary = (_usePrimary) ? false : true;
+                _usePrimary = !_usePrimary;
 
                 // Make sure the "CurrentLocation" variable is actually the location of this token.
-                CurrentLocation = _queueTokenEnd;
+                if (!UseMoveForwardToChangePosition)
+                    CurrentLocation = _queueTokenEnd;
 
                 // Clear out the token limit if the trailing of the next token shouldn't be limited.
                 if (!LimitAffectsNextTrailing)
@@ -462,61 +512,76 @@ namespace ABParse
 
                 // Toggle _usePrimary if it wasn't done when this token was actually found.
                 if (!_togglePrimary)
-                    _usePrimary = (_usePrimary) ? false : true;
+                    _usePrimary = !_usePrimary;
                 //// Set the _queue to null.
                 //_queue = null;
 
                 // In order to make sure the user recieves everything in a logical order (the OnCharacterProcessed for the trailing data gets run AFTER the token is processed), we will need to recount all the trailing characters now.
-                if (NotifyCharacterProcessed)
+                if (NotifyCharacterProcessed && !UseMoveForwardToChangePosition)
                 {
+                    // The amount of characters we have to recount.
                     var amount = _currentLocation - CurrentLocation;
+
+                    // Make sure the public CurrentLocation is at the end of the recounting token.
+                    CurrentLocation = _currentLocation - CurrentLocation;
+
+                    // Recount all the trailing characters.
                     for (int i = 0; i < amount; i++)
+                    {
                         OnCharacterProcessed(Text[CurrentLocation]);
+                        CurrentLocation++;
+                    }
                 }
             }
 
-            // If a token has been passed to this method, queue it up.
-            if (token != null)
-            {
-                // If we should change "_usePrimary"
-                _togglePrimary = (_togglePrimary) ? false : true;
+            // Don't bother queuing up the token if it's null.
+            if (token == null)
+                return;
 
-                // Toggle _usePrimary, if needed.
-                if (_togglePrimary)
-                    _usePrimary = (_usePrimary) ? false : true;
+            // If we should change "_usePrimary"
+            _togglePrimary = (_togglePrimary) ? false : true;
 
-                _foundExactToken = false;
+            // Toggle _usePrimary, if needed.
+            if (_togglePrimary)
+                _usePrimary = (_usePrimary) ? false : true;
 
-                // Set the queued up start/end
-                _queueTokenStart = _tokenStart;
-                _queueTokenEnd = _tokenEnd;
+            _foundExactToken = false;
 
-                // Call the overrideable event.
-                BeforeTokenProcessed(token);
+            // Set the queued up start/end
+            _queueTokenStart = PossibleTokenStart;
+            _queueTokenEnd = PossibleTokenEnd;
 
-                // Don't do anything else, except set the queue if this is the first one.
-                if (_queue == null)
-                {
-                    _queue = token;
-                    return;
-                }
+            // Call the overrideable event.
+            BeforeTokenProcessed(token);
 
-                // Queue up this token.
-                _queue = token;
+            // Reset the token start to its unset value.
+            PossibleTokenStart = -1;
 
-                // Clear whatever build up is the OLD leading.
-                if (_usePrimary)
-                    _primaryBuildUp.Clear();
-                else
-                    _secondaryBuildUp.Clear();
-            }
+            // Clear out the textBuildup so that it 
+            _textBuildup.Clear();
+
+            // Store whether the _queue is null.
+            var wasNull = (_queue == null);
+
+            // Queue up this token.
+            _queue = token;
+
+            // Don't do anything else if the _queue was null.
+            if (wasNull)
+                return;
+
+            // Clear whatever build up is the OLD leading.
+            if (_usePrimary)
+                _primaryBuildUp.Clear();
+            else
+                _secondaryBuildUp.Clear();
         }
 
         /// <summary>
         /// The heart of the parser - processes a character.
         /// </summary>
         /// <returns>Whether this method should be called twice on the next character</returns>
-        internal bool ProcessChar(bool processBuiltUpTokens)
+        public bool ProcessChar(bool processBuiltUpTokens)
         {
             // If we should ignore this character for whatever reason... don't bother with checking the tokens, and just add it to the build up.
             if ((EscapeTokens && _charIsEscaped) || (IgnoreWhitespace && char.IsWhiteSpace(Text[_currentLocation])))
@@ -525,7 +590,7 @@ namespace ABParse
                 _charIsEscaped = false;
 
                 // If there is a queued up item - we'll want to make sure we look at that.
-                if (_foundExactToken)
+                if (_foundExactToken && processBuiltUpTokens)
                     ProcessBuiltUpTokens(false);
 
                 // Add this character to the correct build up.
@@ -534,6 +599,9 @@ namespace ABParse
                 else
                     _secondaryBuildUp.Add(Text[_currentLocation]);
             } else {
+
+                // Whether or not we should return at the end.
+                var shouldReturn = false;
 
                 // If this character is the escape character...
                 if (Text[_currentLocation] == EscapeCharacter)
@@ -573,96 +641,117 @@ namespace ABParse
 
                         if (_builtUp[i].Token.SequenceEqual(_textBuildup))
                         {
+                            // If we've already found an exact token - which this one DOESN'T replace, we need to get that dealt with - IMMEDIATELY.
+                            if (_foundExactToken && !StartsWith(_builtUp[i].Token, _exactToken.Token))
+                                PerformToken(_exactToken);
+
                             // Say that we've found a token with the exact same text as the build-up so far.
                             _foundExactToken = true;
                             _exactToken = _builtUp[i];
 
                             // Set this as the start of the token - if it hasn't already been set.
-                            if (_tokenStart == 0)
-                                _tokenStart = _currentLocation;
+                            if (PossibleTokenStart == -1)
+                                PossibleTokenStart = _currentLocation;
 
                             // Set this as the end of this token.
-                            _tokenEnd = _currentLocation;
+                            PossibleTokenEnd = _currentLocation;
 
-                            // Clear out the _textBuildup.
-                            //_textBuildup.Clear();
-
-                            // Set the _builtUp to the correct value. 
-                            _builtUp = newBuildupTokens;
-
-                            // We'll leave it to deal with this on the next character.
-                            return true;
+                            // Make it so we return at the end
+                            shouldReturn = true;
                         }
 
                         // If the current builtUp one we are testing does actually start with our current built-up string.
-                        else if (StartsWith(_builtUp[i].Token, _textBuildup))
+                        else if (_textBuildup.Count == 1 || StartsWith(_builtUp[i].Token, _textBuildup))
                         {
                             newBuildupTokens.Add(_builtUp[i]);
 
                             // Just in case this turns out to be the one we are looking for - store this as the start location, if it hasn't already been set.
-                            if (_tokenStart == 0)
-                                _tokenStart = _currentLocation;
+                            if (PossibleTokenStart == -1)
+                                PossibleTokenStart = _currentLocation;
                         }
 
                     // The possible tokens this could be.
                     _builtUp = newBuildupTokens;
                 }
 
+                // If we found an exact match, we'll leave it to deal with that on the next character.
+                if (shouldReturn)
+                    return true;
+
                 // Check if the result of the for loop above gave back any tokens.
                 if (processBuiltUpTokens)
                     ProcessBuiltUpTokens(true);
             }
 
-            return (_builtUp.Count > 0);
+            return false;
         }
 
-        private void ProcessBuiltUpTokens(bool retry)
+        public void ProcessBuiltUpTokens(bool retry)
         {
-            // If we didn't find one, clean out the build-up.
-            if (_builtUp.Count == 0)
-            {
-                // Clear all the built up text - we're done with this one..
-                _textBuildup.Clear();
+            // If the text array is empty, don't bother.
+            if (Text.Length == 0)
+                return;
 
-                // Reset the _builtUp array.
-                _builtUp = Tokens.ToList();
-
-                // Check if we actually found a perfect match along the way.
+            // If we didn't find anything that it's LIKE, however, we did find an EXACT one... or if this is the last character, go ahead and perform it, and do some other things.
+            if (_builtUp.Count == 0 || !retry)
                 if (_foundExactToken)
                 {
                     PerformToken(_exactToken);
 
-                    // Just in case THIS character on its own was actually a token (or part of one), we're going to want to check JUST this character again.
-                    if (retry)
-                    {
-                        if (ProcessChar(false))
-                            return;
-                    }
-
-                    // If "retry" is false - which only happens at the very end of the parse... there's no point in building up any characters (waste of performance)
-                    else return;
-
-                    // Clear all the built up text AGAIN - because we just ran ProcessChar...
-                    _textBuildup.Clear();
-
-                    // Reset the _builtUp array, again - since we called the ProcessChar method.
+                    // Reset the _builtUp array, since we're done with this token.
                     _builtUp = Tokens.ToList();
 
-                    // If we HAVE found the exact token... Don't bother with the OnCharacterProcessed function - because this character will get recounted anyway.
-                    if (_foundExactToken)
+                    // Leave it to the next character to deal with this (just in case there's more to the token) - however, if there isn't a "next" character, check it now by processing this character again!
+                    if (!retry || ProcessChar(false))
                         return;
+
+                    //// Clear all the built up text AGAIN - because we just ran ProcessChar...
+                    //_textBuildup.Clear();
+
+                    //// Reset the _builtUp array, again - since we called the ProcessChar method.
+                    //_builtUp = Tokens.ToList();
+
+                    // If we HAVE found the exact token... Don't bother with the OnCharacterProcessed function - because this character will get recounted anyway.
+                    //if (_foundExactToken)
+                    //    return;
                 }
 
-                // Add the character to the current build up (it could actually be leading or trailing).
-                if (_currentLocation < Text.Length)
-                    if (_usePrimary)
-                        _primaryBuildUp.Add(Text[_currentLocation]);
-                    else
-                        _secondaryBuildUp.Add(Text[_currentLocation]);
+            if (_builtUp.Count == 0)
+            {
+                // Whether we should reset the possible token start back to unset - this will happen only if there is no way this could be a token.
+                bool unsetTokenStart = true;
+
+                // Reset the _builtUp array, since the data in it right now means nothing.
+                _builtUp = Tokens.ToList();
+
+                // If there's more than one character in the Text Buildup - this character on its own could be a token,
+                // in which case, we need to check just this character, and, if it is a token or part of one, don't clear out the Text BuildUp.
+                if (_textBuildup.Count > 1)
+                {
+                    // Clear out the Text BuildUp, since, when we test this character on its own, it's going to automatically add this character back in.
+                    _textBuildup.Clear();
+
+                    // Test this character, if the method returned true, that means we've found an exact token - however, we also have to have found nothing that can POSSIBLY be a token (the BuildUp)
+                    if (!ProcessChar(false) && _builtUp.Count == 0)
+                        _textBuildup.Clear();
+
+                    // If we haven't found an exact token, AND there's nothing LIKE this, reset our possible token BuildUp.
+                    if (!_foundExactToken && _builtUp.Count == 0)
+                        _builtUp = Tokens.ToList();
+
+                    // Otherwise, if there's still a chance of it being a token - DON'T reset the PossibleTokenStart.
+                    else unsetTokenStart = false;
+                }
+
+                // However, if there isn't more than one character built up... or we're just at the last character, just clear it out anyway.
+                else _textBuildup.Clear();
+
+                // If we should reset the possible token start, do it.
+                if (unsetTokenStart) PossibleTokenStart = -1;
             }
 
-            // Finally, if we still haven't found the exact token, just add to the current build up for leading.
-            else if (_builtUp.Count > 1 && _currentLocation < Text.Length)
+            // Add to the current build up for leading/trailing.
+            if (_currentLocation < Text.Length)
                 if (_usePrimary)
                     _primaryBuildUp.Add(Text[_currentLocation]);
                 else
@@ -672,8 +761,22 @@ namespace ABParse
             if (NotifyCharacterProcessed && _queue == null)
                 OnCharacterProcessed(Text[_currentLocation]);
 
-            #endregion
+            
         }
+
+        /// <summary>
+        /// Goes to the next character. NOTE: FOR NORMAL BEHAVIOUR ENABLE <see cref="UseMoveForwardToChangePosition"/>
+        /// </summary>
+        public void MoveForward()
+        {
+            // Move the actual location forward.
+            _currentLocation++;
+
+            // Since the user is manually changing positions, we'll change the public one as well.
+            CurrentLocation = _currentLocation;
+        }
+
+        #endregion
 
         #region Overrideable Methods
 
@@ -699,8 +802,9 @@ namespace ABParse
         /// <param name="ch">The character being processed.</param>
         protected virtual void OnCharacterProcessed(char ch)
         {
-            // Increase the public position
-            CurrentLocation++;
+            // Increase the public position, if the user isn't manually going through.
+            if (!UseMoveForwardToChangePosition)
+                CurrentLocation++;
 
             // Trigger the event.
             // TODO: Event Support.
