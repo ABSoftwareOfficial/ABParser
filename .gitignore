@@ -418,21 +418,21 @@ __pycache__/
 
 ### ABPaint Extra ###
 .vs\*
-ABPaint\bin\Debug
-ABPaint\bin\Release
-ABPaint\obj\Debug\*
-ABPaint\obj\Release\*
+ABParser\bin\Debug
+ABParser\bin\Release
+ABParser\obj\Debug\*
+ABParser\obj\Release\*
 
 # The below files keep the Resources working
 
-!ABPaint\obj\Debug\TempPE
-!ABPaint\obj\Debug\DesignTimeResolveAssemblyReferences.cache
-!ABPaint\obj\Debug\DesignTimeResolveAssemblyReferencesInput.cache
-!ABPaint\obj\Debug\CoreCompileInputs.cache
-!ABPaint\obj\Release\TempPE
-!ABPaint\obj\Release\DesignTimeResolveAssemblyReferences.cache
-!ABPaint\obj\Release\DesignTimeResolveAssemblyReferencesInput.cache
-!ABPaint\obj\Release\CoreCompileInputs.cache
+!ABParser\obj\Debug\TempPE
+!ABParser\obj\Debug\DesignTimeResolveAssemblyReferences.cache
+!ABParser\obj\Debug\DesignTimeResolveAssemblyReferencesInput.cache
+!ABParser\obj\Debug\CoreCompileInputs.cache
+!ABParser\obj\Release\TempPE
+!ABParser\obj\Release\DesignTimeResolveAssemblyReferences.cache
+!ABParser\obj\Release\DesignTimeResolveAssemblyReferencesInput.cache
+!ABParser\obj\Release\CoreCompileInputs.cache
 !packages
 
 # Including the .idea directory within repositories is a BAD idea:
@@ -442,3 +442,6 @@ ABPaint\obj\Release\*
 # - it is nothing that IntelliJ can't reproduce, and may end up bundling configs
 #   that contributors don't want to use
 .idea/
+
+# Also, don't look at the nuget.exe file.
+nuget.exe

@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>ABParse</id>
+    <version>1.0.0</version>
+    <title>ABParse</title>
+    <authors>ABPerson</authors>
+    <owners>ABPerson</owners>
+	<licenseUrl>https://github.com/ABSoftwareOfficial/ABParser/blob/master/LICENSE</licenseUrl>
+	<projectUrl>https://github.com/ABSoftwareOfficial/ABParser</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>A simple library which provides support for creating parsers to parse strings. </description>
+    <releaseNotes></releaseNotes>
+    <copyright>Copyright (C) Alex Burrows 2018</copyright>
+    <tags></tags>
+  </metadata>
+</package>

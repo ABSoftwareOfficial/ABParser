@@ -35,7 +35,7 @@ namespace ABParse
         }
 
         /// <summary>
-        /// <para>Create a new token - based on the StringBuilder given.</para> This should have a higher performance instead of the string one as at the core this class uses StringBuilders, for performance (just like the actual <see cref="ABParser"/> class)
+        /// <para>Create a new token - based on the StringBuilder given.</para> This will have a slightly lower performance since ABParser uses character arrays behind the scenes (which is essentially a StringBuilder is)
         /// </summary>
         /// <param name="name">The name of this token, e.g. NextItem</param>
         /// <param name="token">The token (as a StringBuilder)</param>
@@ -46,7 +46,7 @@ namespace ABParse
         }
 
         /// <summary>
-        /// <para>Create a new token - based on the StringBuilder given.</para> This may have a lower performance instead of the string/StringBuilder one as the characters have to be converted to a StringBuilder.
+        /// <para>Create a new token - based on the character given.</para> This will have the highest performance since the parser uses strings in the background.
         /// </summary>
         /// <param name="name">The name of this piece of token, e.g. NextItem</param>
         /// <param name="token">The characters of this token</param>

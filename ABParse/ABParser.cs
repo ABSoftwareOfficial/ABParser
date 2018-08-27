@@ -122,12 +122,12 @@ namespace ABParse
         /// <summary>
         /// Whether the parser should ignore character followed by the <see cref="EscapeCharacter"/>.
         /// </summary>
-        public virtual bool EscapeTokens { get { return true; } }
+        public virtual bool EscapeTokens { get; set; } = true;
 
         /// <summary>
         /// The character the parser should use to escape tokens - if <see cref="EscapeTokens"/> is true. NOTE: YOUR TOKENS CAN'T CONTAIN THIS CHARACTER.
         /// </summary>
-        public virtual char EscapeCharacter { get { return '\\'; } }
+        public virtual char EscapeCharacter { get; set; } = '\\';
 
         /// <summary>
         /// This will tell the parser whether it should ignore whitespace or not - if this is true, the parser may run MUCH faster... But, you won't be able to use whitespace in tokens.
@@ -479,13 +479,13 @@ namespace ABParse
         {
             // This has to be done before handling any queued up items - 
             // If this token is more than one character long - the leading/trailing will now have a bit of it in it, so we need to remove that.
-            //if (token != null)
-            //    if (token.Token.Length > 1)
-            //        if (_usePrimary)
-            //            TrimEnd(ref _primaryBuildUp, _primaryBuildUp.Count - 1);
-            //        else
-            //            TrimEnd(ref _secondaryBuildUp, _secondaryBuildUp.Count - 1);
-            
+            if (token != null)
+                if (token.Token.Length > 1)
+                    if (_usePrimary)
+                        TrimEnd(ref _primaryBuildUp, token.Token.Length - 1);
+                    else
+                        TrimEnd(ref _secondaryBuildUp, token.Token.Length - 1);
+
             // If there is already a token queued up, process it.
             if (_queue != null)
             {
