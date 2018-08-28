@@ -132,7 +132,7 @@ namespace ABParse
         /// <summary>
         /// This will tell the parser whether it should ignore whitespace or not - if this is true, the parser may run MUCH faster... But, you won't be able to use whitespace in tokens.
         /// </summary>
-        public virtual bool IgnoreWhitespace { get { return true; } }
+        public virtual bool IgnoreWhitespace { get; set; } = true;
 
         /// <summary>
         /// Whether the parser is actually parsing the text or not.

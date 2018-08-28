@@ -12,7 +12,7 @@ namespace ABParse.Tests.Debugging
         public static void Main(string[] args)
         {
             var demo = new DemoParser();
-            demo.Start("hello\\.world,great");
+            demo.Start("\"hello.world\",great");
 
             Console.ReadLine();
         }

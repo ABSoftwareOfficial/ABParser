@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>ABParse</id>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <title>ABParse</title>
     <authors>ABPerson</authors>
     <owners>ABPerson</owners>
@@ -10,8 +10,8 @@
 	<projectUrl>https://github.com/ABSoftwareOfficial/ABParser</projectUrl>
 	<iconUrl>https://github.com/ABSoftwareOfficial/ABParser/raw/master/ABParse/nuget_icon.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>A simple library which provides support for creating parsers to parse strings. (A tutorial is coming soon)</description>
-    <releaseNotes>This release fixes issues with multi-character tokens.</releaseNotes>
+    <description>A simple library which provides support for creating parsers to parse strings. A tutorial is available at: https://www.youtube.com/watch?v=lYWWJm3OjMQ </description>
+    <releaseNotes>Added tutorial and made IgnoreWhitespace not readonly.</releaseNotes>
     <copyright>Copyright © Alex Burrows 2018</copyright>
     <tags>parsing parser string-parser strings make-your-own-parser any-parser easy-parser ABParse ABSoftware ABWorld</tags>
   </metadata>
