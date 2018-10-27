@@ -196,8 +196,7 @@ namespace ABParse.Tests.Debugging
                 CurrentPair.Value = new JPrimitive(JPrimitiveType.Boolean, true);
             else // Numerical
             {
-                float result = 0f;
-                if (float.TryParse(value, out result)) CurrentPair.Value = new JPrimitive(JPrimitiveType.Numerical, result);
+                if (float.TryParse(value, out float result)) CurrentPair.Value = new JPrimitive(JPrimitiveType.Numerical, result);
             }
         }
 

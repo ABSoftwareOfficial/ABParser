@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace ABParse
 {
@@ -13,6 +12,7 @@ namespace ABParse
     /// Represents the PossibleTokenStart has been set/unset.
     /// </summary>
     public delegate void ABParserPossibleTokenStartChanged();
+
     /// <summary>
     /// A class designed to help a string be parsed based on a set of "tokens" it should recognize.
     /// </summary>
