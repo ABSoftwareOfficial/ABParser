@@ -215,15 +215,16 @@ namespace ABParse
             // Create an array of characters.
             var chArray = new char[str.Length];
 
-            // Fix a pointer to this new array.
-            fixed (char* fixedPointer = chArray)
+            // Fix a pointer to this new array and the string.
+            fixed (char* fixedCharPointer = chArray, fixedStrPointer = str)
             {
-                // Create a non-fixed pointer to the same location as the fixed pointer.
-                var pointer = fixedPointer;
+                // Create non-fixed pointers for both of them.
+                var charPointer = fixedCharPointer;
+                var strPointer = fixedStrPointer;
 
                 // Add the characters from the string to the char array!
                 for (int i = 0; i < chArray.Length; i++)
-                    *(pointer++) = str[i];
+                    *(charPointer++) = *(strPointer++);
             }
 
             // Return the array.
@@ -280,12 +281,12 @@ namespace ABParse
 
             fixed (char* resultPointer = chArray)
             {
+                // Create a non-fixed pointer for the result.
                 var pointer = resultPointer;
 
                 // If there are limits, get all the first characters - EXCLUDING the non-limited ones.
                 if (_tokenLimit.Count > 0)
                 {
-
                     // Go through every rule.
                     for (int i = 0; i < Tokens.Count; i++)
                         if (Tokens[i].Token.Length > 0)

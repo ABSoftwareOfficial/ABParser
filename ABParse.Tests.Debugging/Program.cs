@@ -1,4 +1,6 @@
-﻿using ABParse.Tests.Parsers;
+﻿using ABParse.Tests.Debugging.JSONVideo;
+using ABParse.Tests.Debugging.Other;
+using ABParse.Tests.Parsers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,8 +13,26 @@ namespace ABParse.Tests.Debugging
     {
         public static void Main(string[] args)
         {
-            var demo = new DemoParser();
-            demo.Start("\"hello.world\",great");
+            var demo = new JsonParser();
+            demo.Start(@"
+{
+	""hello"":""world"",
+	""object"": 
+	{
+		""good"": 351,
+		""anotherobj"":
+		{
+			""yay"": true,
+			""nay"": false
+		}
+	},
+	""array"":
+	[
+		{""anotherobj"":""great"",""ok"":11616},
+		{""excellent"":""ok""  ,  ""done"":""ok""}
+	]
+}
+");
 
             Console.ReadLine();
         }

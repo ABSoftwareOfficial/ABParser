@@ -40,23 +40,6 @@ namespace ABParse.Tests.Debugging
         }
     }
 
-    internal class SimpleJSONParser : ABParser
-    {
-        public SimpleJSONParser()
-        {
-            Tokens = new ObservableCollection<ABParserToken>()
-            {
-                new ABParserToken(nameof(JsonParserTokens.ObjectStart), '{'),
-                new ABParserToken(nameof(JsonParserTokens.ObjectEnd), '}'),
-                new ABParserToken(nameof(JsonParserTokens.ArrayStart), '['),
-                new ABParserToken(nameof(JsonParserTokens.ArrayEnd), ']'),
-                new ABParserToken(nameof(JsonParserTokens.String), '"'),
-                new ABParserToken(nameof(JsonParserTokens.PairSeperator), ':'),
-                new ABParserToken(nameof(JsonParserTokens.ItemSeperator), ',')
-            };
-        }
-    }
-
     public static class PerformanceTests
     {
         public const int EXECUTION_TIMES = 100;
@@ -92,22 +75,21 @@ namespace ABParse.Tests.Debugging
             return parser.ElapsedTicks;
         }
 
-        public static long JsonParserNoExtraCode()
-        {
-            var timer = Stopwatch.StartNew();
-            var parser = new SimpleJSONParser();
+        //public static long JsonParserNoExtraCode()
+        //{
+        //    var timer = Stopwatch.StartNew();
 
-            parser.Start("{\"hello\":\"world!\",\"another\":[37, 431]}");
-            timer.Stop();
+        //    parser.Start("{\"hello\":\"world!\",\"another\":[37, 431]}");
+        //    timer.Stop();
 
-            return timer.ElapsedTicks;
-        }
+        //    return timer.ElapsedTicks;
+        //}
 
         public static long ToListOnTokens()
         {
             var timer = Stopwatch.StartNew();
 
-            new JsonParser().Tokens.ToList();
+            //new OldJsonParser().Tokens.ToList();
 
             timer.Stop();
 
@@ -117,9 +99,9 @@ namespace ABParse.Tests.Debugging
         public static long SimpleTestSpeed()
         {
             var timer = Stopwatch.StartNew();
-            var parser = new JsonParser();
+            //var parser = new OldJsonParser();
 
-            parser.Start("{\"hello\":[32, 478],\"cool\":{\"another\":[\"Come on!\", \"You can do it :p\"]}}");
+            //parser.Start("{\"hello\":[32, 478],\"cool\":{\"another\":[\"Come on!\", \"You can do it :p\"]}}");
             timer.Stop();
 
             return timer.ElapsedTicks;
@@ -143,11 +125,11 @@ namespace ABParse.Tests.Debugging
             for (int i = 0; i < EXECUTION_TIMES; i++)
                 totalTime3 += ProcessCharSpeed();
 
-            for (int i = 0; i < EXECUTION_TIMES; i++)
-                totalTime4 += JsonParserNoExtraCode();
+            //for (int i = 0; i < EXECUTION_TIMES; i++)
+            //    totalTime4 += JsonParserNoExtraCode();
 
             for (int i = 0; i < EXECUTION_TIMES; i++)
-                totalTime5 += SimpleTestSpeed();
+                totalTime4 += SimpleTestSpeed();
 
             totalTime1 = totalTime1 / EXECUTION_TIMES;
             totalTime2 = totalTime2 / EXECUTION_TIMES;

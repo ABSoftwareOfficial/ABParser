@@ -1,51 +1,57 @@
-﻿using System;
+﻿using ABParse.Tests.Debugging.Other;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ABParse.Tests.Debugging.Other
+namespace ABParse.Tests.Debugging.JSONVideo
 {
-    public enum JsonParserTokens
+    public enum ScriptJsonParserTokens
     {
         ObjectStart,
         ObjectEnd,
         ArrayStart,
         ArrayEnd,
+        String,
         PairSeperator,
-        ItemSeperator,
-        String
+        ItemSeperator
     }
 
-    public class JsonParser : ABParser
+    /// <summary>
+    /// USED WHILE WRITING THE SCRIPT FOR "Making Your Own JSON parser" TUTORIAL - A JSON parser to parse JSON.
+    /// </summary>
+    public class ScriptWritingJsonParser : ABParser
     {
-
         /// <summary>
-        /// The final result.
+        /// The final result of the parser.
         /// </summary>
         public JObject Result;
 
         /// <summary>
-        /// Contains all the objects we're currently in.
+        /// The objects we're currently in.
         /// </summary>
         public List<IJValue> CurrentObjects;
 
         /// <summary>
-        /// Contains all the different locations we're at for each object.
+        /// The locations that we're currently at in for each of the <see cref="CurrentObjects"/>.
         /// </summary>
         public List<int> CurrentObjectLocations;
 
         /// <summary>
-        /// Used to decide whether on a value or not.
+        /// Whether we're on the value of a pair or not.
         /// </summary>
         public bool OnValue;
 
         /// <summary>
-        /// Used to detect whether we're in a string or not.
+        /// Whether we're in a string or not.
         /// </summary>
         public bool InString;
-        
-        public JsonParser()
+
+        /// <summary>
+        /// Script.
+        /// </summary>
+        public ScriptWritingJsonParser()
         {
             Tokens = new System.Collections.ObjectModel.ObservableCollection<ABParserToken>()
             {
@@ -55,147 +61,175 @@ namespace ABParse.Tests.Debugging.Other
                 new ABParserToken(nameof(JsonParserTokens.ArrayEnd), ']'),
                 new ABParserToken(nameof(JsonParserTokens.String), '"'),
                 new ABParserToken(nameof(JsonParserTokens.PairSeperator), ':'),
-                new ABParserToken(nameof(JsonParserTokens.ItemSeperator), ','),
+                new ABParserToken(nameof(JsonParserTokens.ItemSeperator), ',')
             };
         }
 
         protected override void OnStart()
         {
-            // Reset everything.
+            base.OnStart();
+
+            // Reset the values.
             CurrentObjects = new List<IJValue>();
             CurrentObjectLocations = new List<int>();
         }
 
         protected override void BeforeTokenProcessed(ABParserToken token)
         {
-            // Only do something if we've come across the first string token for a string.
+            base.BeforeTokenProcessed(token);
+
+            // Set a TokenLimit for the string, if we've come across one.
             if (token.Name == nameof(JsonParserTokens.String) && !InString)
             {
                 LimitAffectsNextTrailing = false;
-                TokenLimit = new System.Collections.ObjectModel.ObservableCollection<char[]> { token.Token };
+                TokenLimit = new System.Collections.ObjectModel.ObservableCollection<char[]>() { token.Token };
             }
         }
 
         protected override void OnTokenProcessed(TokenProcessedEventArgs e)
         {
+            base.OnTokenProcessed(e);
+
             if (InString)
             {
-                // Mark us no longer in a string.
-                InString = false;
-
-                // If this string in a value, we'll want to set the value.
+                // If we're on a value, set the value as the correct string.
                 if (OnValue)
                     SetValue(new JPrimitive(JPrimitiveType.String, e.Leading), false);
-
-                // If this string is in the name, we'll want a new pair.
+                
+                // Otherwise, add a new pair with this key.
                 else
                     (CurrentObjects[CurrentObjects.Count - 1] as JObject).Pairs.Add(new JPair(e.Leading));
+
+                // Mark us as no longer being in a string anymore.
+                InString = false;
             }
             else
                 switch (e.Token.Name)
                 {
                     case nameof(JsonParserTokens.ObjectStart):
 
-                        // Add a new JObject to the CurrentObjects.
+                        // Add an item to the "CurrentObjects" and "CurrentObjectLocations".
                         CurrentObjects.Add(new JObject());
                         CurrentObjectLocations.Add(0);
 
-                        // If we're starting an object, the first thing we come across will always be a key.
+                        // If we're going inside an object, it starts with a key, so, make sure "OnValue" is false.
                         OnValue = false;
 
                         break;
                     case nameof(JsonParserTokens.ObjectEnd):
 
-                        // Check if there's one item.
+                        // If this is the last item, place it into the final "Result".
                         if (CurrentObjects.Count == 1)
-                            Result = CurrentObjects.Last() as JObject;
+                            Result = (JObject)CurrentObjects.Last();
 
-                        // Finish with the item.
+                        // Otherwise, finish with this item.
                         else
                             FinishItem(e.Leading);
 
                         break;
-
                     case nameof(JsonParserTokens.ArrayStart):
 
-                        // Add a new JArray to the CurrentObjects.
+                        // Add an item to the "CurrentObjects" and "CurrentObjectLocations".
                         CurrentObjects.Add(new JArray());
                         CurrentObjectLocations.Add(0);
 
-                        // Everything in an array, is technically a value.
+                        // Everything inside an object is technically a value, so make sure that "OnValue" is true.
                         OnValue = true;
 
-                        // Add an item if the array isn't empty.
+                        // If there's actually something inside the array, add an item for it.
                         if (e.Trailing.Trim() != "" || e.NextToken.Name != nameof(JsonParserTokens.ArrayEnd))
-                            (CurrentObjects[CurrentObjects.Count - 1] as JArray).Items.Add(null);
+                            (CurrentObjects.Last() as JArray).Items.Add(null);
 
                         break;
-
                     case nameof(JsonParserTokens.ArrayEnd):
 
-                        // Finish with the item.
+                        // Finish up with this array.
                         FinishItem(e.Leading);
-
                         break;
-
                     case nameof(JsonParserTokens.PairSeperator):
 
-                        // Mark us as being on the value.
+                        // Mark us as now being on the value.
                         OnValue = true;
-
                         break;
-
                     case nameof(JsonParserTokens.ItemSeperator):
 
-                        // Parse the possible value found before this seperator.
+                        // Parse the leading value and place it into the correct place.
                         ParseValueAndPlace(e.Leading);
 
-                        // Move forward an item.
+                        // Move forward one.
                         CurrentObjectLocations[CurrentObjectLocations.Count - 1]++;
 
-                        // When we're in an array, we need to add a new item.
+                        // Add a new item if we're in an array.
                         if (CurrentObjects.Last() is JArray)
-                            (CurrentObjects[CurrentObjects.Count - 1] as JArray).Items.Add(null);
+                            (CurrentObjects.Last() as JArray).Items.Add(null);
 
-                        // If we're in an object, mark us as longer being on the value.
+                        // Otherwise, we're no longer on the value since the next thing will be a key.
                         else
                             OnValue = false;
 
                         break;
+
                     case nameof(JsonParserTokens.String):
 
-                        // We're currently in a string.
+                        // Mark us as being in a string now.
                         InString = true;
                         break;
+
                 }
         }
 
         /// <summary>
-        /// Attempts to parse a value found before a token.
+        /// Parses a value and places it into the correct place.
         /// </summary>
         /// <param name="e"></param>
         private void ParseValueAndPlace(string leading)
         {
-            // Only place the value if it hasn't already been parsed.
+            // If the leading is empty, we don't want to do anything, because that means the value has already been filled.
             if (leading.Trim() != "")
             {
-
-                // Parse the value.
+                // Parse the value found before this item seperator.
                 var value = ParseValue(leading);
 
-                // Place the value.
+                // Put the value in the correct place.
                 SetValue(value, false);
             }
         }
 
         /// <summary>
-        /// Parses a primitive.
+        /// Finishes up with an item.
         /// </summary>
-        /// <param name="value">The string to parse.</param>
-        /// <returns>The parsed result.</returns>
+        private void FinishItem(string leading)
+        {
+            // The last value won't get parsed with a comma, so make sure we parse it here.
+            ParseValueAndPlace(leading);
+
+            // Place the current object into the where it's meant to go before removing it.
+            SetValue(CurrentObjects.Last(), true);
+
+            // Remove the item.
+            CurrentObjects.RemoveAt(CurrentObjects.Count - 1);
+        }
+
+        /// <summary>
+        /// Places a value into an item.
+        /// </summary>
+        private void SetValue(IJValue value, bool secondToLast)
+        {
+            // Decide how to place the item into the object and then place it at the correct location.
+            if (CurrentObjects[secondToLast ? CurrentObjects.Count - 2 : CurrentObjects.Count - 1] is JObject)
+                (CurrentObjects[secondToLast ? CurrentObjects.Count - 2 : CurrentObjects.Count - 1] as JObject).Pairs[CurrentObjectLocations[secondToLast ? CurrentObjectLocations.Count - 2 : CurrentObjectLocations.Count - 1]].Value = value;
+            else
+                (CurrentObjects[secondToLast ? CurrentObjects.Count - 2 : CurrentObjects.Count - 1] as JArray).Items[CurrentObjectLocations[secondToLast ? CurrentObjectLocations.Count - 2 : CurrentObjectLocations.Count - 1]] = value;
+        }
+
+        /// <summary>
+        /// Parses a string an gets a value out of it - assuming the string is a primitive.
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
         private IJValue ParseValue(string value)
         {
-            // Get rid of all whitespace.
+            // Trim both the start and the end, so that we don't include any whitespace.
             var trimmed = value.Trim().TrimEnd();
 
             // Booleans
@@ -210,36 +244,8 @@ namespace ABParse.Tests.Debugging.Other
 
             // Numbers
             else
+                // REMEMBER: IN A REAL PARSER YOU WOULD USE TryParse()
                 return new JPrimitive(JPrimitiveType.Numerical, double.Parse(trimmed));
-        }
-
-        /// <summary>
-        /// Finishes with an item.
-        /// </summary>
-        private void FinishItem(string leading)
-        {
-            // Parse the value before finishing with the item.
-            ParseValueAndPlace(leading);
-
-            // Place the item into the previous pair.
-            SetValue(CurrentObjects.Last(), true);
-
-            // Remove the item.
-            CurrentObjects.RemoveAt(CurrentObjects.Count - 1);
-            CurrentObjectLocations.RemoveAt(CurrentObjectLocations.Count - 1);
-        }
-
-        /// <summary>
-        /// Sets a value at either the last or second-to-last item in the "CurrentObjects".
-        /// </summary>
-        /// <param name="value">The value to set it to.</param>
-        /// <param name="secondToLast">Whether it's the second-to-last item.</param>
-        private void SetValue(IJValue value, bool secondToLast)
-        {
-            if (CurrentObjects[secondToLast ? CurrentObjects.Count - 2 : CurrentObjects.Count - 1] is JObject)
-                (CurrentObjects[secondToLast ? CurrentObjects.Count - 2 : CurrentObjects.Count - 1] as JObject).Pairs[CurrentObjectLocations[secondToLast ? CurrentObjectLocations.Count - 2 : CurrentObjectLocations.Count - 1]].Value = value;
-            else
-                (CurrentObjects[secondToLast ? CurrentObjects.Count - 2 : CurrentObjects.Count - 1] as JArray).Items[CurrentObjectLocations[secondToLast ? CurrentObjectLocations.Count - 2 : CurrentObjectLocations.Count - 1]] = value;
         }
     }
 }

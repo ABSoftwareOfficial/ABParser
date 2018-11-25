@@ -44,6 +44,9 @@
   <ItemGroup>
     <Compile Include="DemoParser.cs" />
     <Compile Include="Other\JsonParser.cs" />
+    <Compile Include="Tests\ScriptJsonTestParser.cs" />
+    <Compile Include="Other\JObject.cs" />
+    <Compile Include="Tests\JsonParser.cs" />
     <Compile Include="Other\PerformanceTests.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -61,5 +64,6 @@
       <Name>ABParse</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
