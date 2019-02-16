@@ -21,7 +21,15 @@ namespace ABParse
         /// </summary>
         public char[] Token { get; set; }
 
-        // All the constructors for creating this parser:
+        /// <summary>
+        /// Makes both the name and token the same, from a single string.
+        /// </summary>
+        /// <param name="nameAndToken"></param>
+        public ABParserToken(string nameAndToken)
+        {
+            Name = nameAndToken;
+            Token = nameAndToken.ToCharArray();
+        }
 
         /// <summary>
         /// Create a new token - based on the string given.
@@ -31,7 +39,7 @@ namespace ABParse
         public ABParserToken(string name, string token)
         {
             Name = name;
-            Token = ABParser.ToCharArray(token);
+            Token = token.ToCharArray();
         }
 
         /// <summary>

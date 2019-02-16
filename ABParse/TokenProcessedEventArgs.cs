@@ -45,8 +45,7 @@ namespace ABParse
             get
             {
                 if (_cacheLeading == "")
-                    for (int i = 0; i < _leading.Length; i++)
-                        _cacheLeading += _leading[i];
+                    _cacheLeading = new string(_leading);
 
                 return _cacheLeading;
             }
@@ -60,22 +59,31 @@ namespace ABParse
             get
             {
                 if (_cacheTrailing == "")
-                    for (int i = 0; i < _trailing.Length; i++)
-                        _cacheTrailing += _trailing[i];
+                    _cacheTrailing = new string(_trailing);
 
                 return _cacheTrailing;
             }
         }
 
-        public TokenProcessedEventArgs(ABParserToken token, ABParserToken nexttoken, int start, int end, List<char> leading, List<char> trailing)
+        public char[] LeadingCharacterArr
+        {
+            get => _leading;
+        }
+
+        public char[] TrailingCharacterArr
+        {
+            get => _trailing;
+        }
+
+        public TokenProcessedEventArgs(ABParserToken token, ABParserToken nexttoken, int start, int end, char[] leading, char[] trailing)
         {
             // Set the start and end locations.
             StartLocation = start;
             EndLocation = end;
 
             // Set the leading and trailing text.
-            _leading = leading.ToArray();
-            _trailing = trailing.ToArray();
+            _leading = leading;
+            _trailing = trailing;
 
             if (nexttoken == null)
                 NextToken = new ABParserToken("", '\0');
