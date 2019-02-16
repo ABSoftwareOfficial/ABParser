@@ -2,17 +2,17 @@
 <package >
   <metadata>
     <id>ABParse</id>
-    <version>1.0.3</version>
+    <version>1.1.0</version>
     <title>ABParse</title>
     <authors>ABPerson</authors>
     <owners>ABPerson</owners>
-	<licenseUrl>https://raw.githubusercontent.com/ABSoftwareOfficial/ABParser/master/LICENSE</licenseUrl>
+	<license type="expression">MIT</license>
 	<projectUrl>https://github.com/ABSoftwareOfficial/ABParser</projectUrl>
 	<iconUrl>https://github.com/ABSoftwareOfficial/ABParser/raw/master/ABParse/nuget_icon.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>A simple library which provides support for creating parsers to parse strings. A tutorial is available at: https://www.youtube.com/watch?v=lYWWJm3OjMQ </description>
-    <releaseNotes>Lower Namespace + Remove Unneeded References.</releaseNotes>
-    <copyright>Copyright © Alex Burrows 2018</copyright>
+    <releaseNotes>Revamp Base + Improve Performance</releaseNotes>
+    <copyright>Copyright © Alex Burrows 2019</copyright>
     <tags>parsing parser string-parser strings make-your-own-parser any-parser easy-parser can-be-json-parser custom-parser parsing-utility ABParse ABSoftware ABWorld</tags>
   </metadata>
 </package>
