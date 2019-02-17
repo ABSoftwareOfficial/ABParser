@@ -85,10 +85,8 @@ namespace ABParse
             _leading = leading;
             _trailing = trailing;
 
-            if (nexttoken == null)
-                NextToken = new ABParserToken("", '\0');
-            else
-                NextToken = nexttoken;
+            // Also, set the next token.
+            NextToken = nexttoken;
 
             // Set the token.
             Token = token;

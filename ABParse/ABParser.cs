@@ -512,7 +512,7 @@ namespace ABParse
             IsProcessing = false;
 
             // Make sure we definitely complete the queued up token.
-            PerformToken(null, true);
+            HandleQueuedToken(null, true);
 
             // Reset the queue back to null in case the parser gets ran again.
             _queue = null;
@@ -665,7 +665,8 @@ namespace ABParse
                         break;
                 }
 
-                // Make sure we update anything that needs to be updated - based on the last character.
+                // Make sure we update anything that needs to be updated.
+                _currentLocation--;
                 ProcessPossibleTokens(true, *(fixedCharPointer + Text.Length), (_usePrimary) ? primaryCharPointer : secondaryCharPointer);
             }
 
@@ -811,10 +812,6 @@ namespace ABParse
         public unsafe void ProcessPossibleTokens(bool whitespaceOrLastCharacter, char character, char* currentBuildUp)
         {
 
-            // If the text array is empty, don't bother.
-            if (Text.Length == 0)
-                return;
-
             // If we didn't find anything that it's LIKE, however, we did find an EXACT one...
             // However, if we're on the last character, or whitespace, there won't be anything else after (that could be because it's whitespace), so if we've found an exact token, go ahead and handle.
             if (_builtUpLength == 0 || whitespaceOrLastCharacter)
@@ -891,55 +888,10 @@ namespace ABParse
         /// <summary>
         /// When a token is found, this will handle executing "BeforeTokenProcessed" and "OnTokenProcessed", as well as getting the leading/trailing all ready.
         /// </summary>
-        private void PerformToken(ABParserToken token, bool isLast = false)
+        private void PerformToken(ABParserToken token)
         {
-            // This has to be done before handling any queued up items - 
-            // If this token is more than one character long - the leading/trailing will now have a bit of it in it, so we need to remove that.
-            // Not only that, but, this method will also remove any trailing "\0"s, hence why we call it even if the token isn't more than one character long.
-            ShortenBuildUp(isLast);
-
-            // If there is already a token queued up, process it.
-            if (_queue != null)
-            {
-                // Toggle _usePrimary - because it was toggled to let it build up the trailing.
-                _usePrimary = !_usePrimary;
-
-                // Make sure the "CurrentLocation" variable is actually the location of this token.
-                if (!UseMoveForwardToChangePosition)
-                    CurrentLocation = _queueTokenEnd;
-
-                // Clear out the token limit if the trailing of the next token shouldn't be limited.
-                if (!LimitAffectsNextTrailing)
-                {
-                    TokenLimit.Clear();
-                    LimitAffectsNextTrailing = true;
-                }
-
-                // Call the overrideable method.
-                OnTokenProcessed(new TokenProcessedEventArgs(_queue, token, _queueTokenStart, _queueTokenEnd,
-                    (_usePrimary) ? _primaryBuildUp : _secondaryBuildUp, (_usePrimary) ? _secondaryBuildUp : _primaryBuildUp));
-
-                // Toggle _usePrimary if it wasn't done when this token was actually found.
-                if (!_togglePrimary)
-                    _usePrimary = !_usePrimary;
-
-                // In order to make sure the user recieves everything in a logical order (the OnCharacterProcessed for the trailing data gets run AFTER the token is processed), we will need to recount all the trailing characters now.
-                if (NotifyCharacterProcessed && !UseMoveForwardToChangePosition)
-                {
-                    // The amount of characters we have to recount.
-                    var amount = _currentLocation - CurrentLocation;
-
-                    // Make sure the public CurrentLocation is at the end of the recounting token.
-                    CurrentLocation = _currentLocation - CurrentLocation;
-
-                    // Recount all the trailing characters.
-                    for (int i = 0; i < amount; i++)
-                    {
-                        OnCharacterProcessed(Text[CurrentLocation]);
-                        CurrentLocation++;
-                    }
-                }
-            }
+            // Process the token that was queued up.
+            HandleQueuedToken(token, false);
 
             // Don't bother queuing up the token if there isn't one to queue up (the token is usually null to make sure that the queued up token happens)
             if (token == null)
@@ -982,6 +934,57 @@ namespace ABParse
                 ResetSecondaryBuildUp(Text.Length - _currentLocation);
         }
 
+        private void HandleQueuedToken(ABParserToken nextToken, bool isLast)
+        {
+            // This has to be done before handling any queued up items - 
+            // If this token is more than one character long - the leading/trailing will now have a bit of it in it, so we need to remove that.
+            // Not only that, but, this method will also remove any trailing "\0"s, hence why we call it even if the token isn't more than one character long.
+            ShortenBuildUp(isLast);
+
+            // If there is already a token queued up, process it.
+            if (_queue != null)
+            {
+                // Toggle _usePrimary - because it was toggled to let it build up the trailing.
+                _usePrimary = !_usePrimary;
+
+                // Make sure the "CurrentLocation" variable is actually the location of this token.
+                if (!UseMoveForwardToChangePosition)
+                    CurrentLocation = _queueTokenEnd;
+
+                // Clear out the token limit if the trailing of the next token shouldn't be limited.
+                if (!LimitAffectsNextTrailing)
+                {
+                    TokenLimit.Clear();
+                    LimitAffectsNextTrailing = true;
+                }
+
+                // Call the overrideable method.
+                OnTokenProcessed(new TokenProcessedEventArgs(_queue, nextToken, _queueTokenStart, _queueTokenEnd,
+                    (_usePrimary) ? _primaryBuildUp : _secondaryBuildUp, (_usePrimary) ? _secondaryBuildUp : _primaryBuildUp));
+
+                // Toggle _usePrimary if it wasn't done when this token was actually found.
+                if (!_togglePrimary)
+                    _usePrimary = !_usePrimary;
+
+                // In order to make sure the user recieves everything in a logical order (the OnCharacterProcessed for the trailing data gets run AFTER the token is processed), we will need to recount all the trailing characters now.
+                if (NotifyCharacterProcessed && !UseMoveForwardToChangePosition)
+                {
+                    // The amount of characters we have to recount.
+                    var amount = _currentLocation - _queueTokenEnd;
+
+                    // Make sure the public CurrentLocation is at the end of the recounting token.
+                    CurrentLocation = amount-- + 1;
+
+                    // Recount all the trailing characters.
+                    for (int i = 0; i < amount; i++)
+                    {
+                        OnCharacterProcessed(Text[CurrentLocation]);
+                        CurrentLocation++;
+                    }
+                }
+            }
+        }
+
         #endregion
 
         #region Overrideable Methods
@@ -1004,6 +1007,7 @@ namespace ABParse
 
         /// <summary>
         /// When a character is processed. NOTE: <see cref="NotifyCharacterProcessed"/> MUST BE TRUE.
+        /// This does not execute for tokens.
         /// </summary>
         /// <param name="ch">The character being processed.</param>
         protected virtual void OnCharacterProcessed(char ch)

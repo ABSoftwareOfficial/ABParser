@@ -49,13 +49,16 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="EscapingFeatureTests.cs" />
+    <Compile Include="FeatureTests.cs" />
     <Compile Include="MultiCharacterTokenParserTests.cs" />
     <Compile Include="MultiTokenParserTests.cs" />
     <Compile Include="LeadingWithWhitespaceTests.cs" />
     <Compile Include="NotEscapingFeatureTests.cs" />
+    <Compile Include="Parsers\LogicalOrderFeatureParser.cs" />
     <Compile Include="Parsers\MultiCharacterTokenParser.cs" />
     <Compile Include="Parsers\MultiTokenParser.cs" />
     <Compile Include="Parsers\MyParser.cs" />
+    <Compile Include="Parsers\NextTokenFeatureParser.cs" />
     <Compile Include="Parsers\NotEscapedParser.cs" />
     <Compile Include="Parsers\WhitespaceFeatureParser.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
